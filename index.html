@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Shoot to Win — Zaktualizowana wersja z zapisem stanu i poziomami trudności -->
+<!-- Shoot to Win — kampania z czterema poziomami -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -18,7 +18,7 @@ canvas{display:block}
 h1,h2{font-family:Bungee,Impact,sans-serif;color:var(--hero);line-height:.95;text-shadow:4px 4px 0 var(--foe),8px 8px 0 var(--ink)}
 h1{font-size:clamp(40px,8vw,90px)}
 h2{font-size:clamp(30px,6vw,56px)}
-.lead{max-width:34em;font-size:clamp(14px,2vw,17px);line-height:1.45}
+.lead{max-width:36em;font-size:clamp(14px,2vw,17px);line-height:1.45}
 .controls{display:grid;grid-template-columns:auto auto;gap:4px 14px;text-align:left;font-size:13px;line-height:1.4;background:rgba(255,243,214,.07);border:2px solid rgba(255,243,214,.18);border-radius:10px;padding:10px 14px}
 .controls b{color:var(--hero);font-weight:600}
 .btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
@@ -28,10 +28,12 @@ h2{font-size:clamp(30px,6vw,56px)}
 .btn:focus-visible{outline:3px solid var(--paper);outline-offset:4px}
 .diff-wrap{display:flex;flex-direction:column;gap:6px;align-items:center}
 .diff-title{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.9;font-weight:600}
-.diff-group{display:flex;gap:8px}
-.diff-btn{font-family:Bungee,Impact,sans-serif;font-size:14px;padding:6px 14px;border:2px solid var(--paper);border-radius:6px;background:rgba(255,243,214,.1);color:var(--paper);cursor:pointer}
-.diff-btn.active{background:var(--hero);color:var(--ink);border-color:var(--ink);box-shadow:2px 2px 0 var(--foe)}
-.save-status{font-size:13px;color:var(--hero);font-weight:600}
+.diff-group{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.diff-btn,.lvl-btn{font-family:Bungee,Impact,sans-serif;font-size:14px;padding:6px 14px;border:2px solid var(--paper);border-radius:6px;background:rgba(255,243,214,.1);color:var(--paper);cursor:pointer}
+.lvl-btn{min-width:46px}
+.diff-btn.active,.lvl-btn.active{background:var(--hero);color:var(--ink);border-color:var(--ink);box-shadow:2px 2px 0 var(--foe)}
+.diff-btn:disabled,.lvl-btn:disabled{opacity:.38;cursor:not-allowed}
+.save-status{font-size:13px;color:var(--hero);font-weight:600;max-width:40em}
 .note{font-size:12px;opacity:.75}
 .credit{font-size:11px;opacity:.5}
 #touch{position:fixed;inset:0;pointer-events:none}
@@ -40,6 +42,7 @@ h2{font-size:clamp(30px,6vw,56px)}
 .pad.r{right:max(16px,env(safe-area-inset-right))}
 .tb{width:74px;height:74px;border-radius:50%;border:3px solid rgba(255,243,214,.55);background:rgba(22,15,40,.45);color:var(--paper);font-family:Bungee,Impact,sans-serif;font-size:13px;touch-action:none}
 .tb.fire{width:88px;height:88px;background:rgba(228,87,46,.55)}
+.tb.dodge{width:68px;height:68px;font-size:12px;background:rgba(47,111,115,.55)}
 .tb.on{background:rgba(242,193,78,.65);color:var(--ink)}
 #pauseBtn{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);pointer-events:auto;width:auto;height:auto;border-radius:10px;padding:8px 14px;font-size:12px}
 @media (prefers-reduced-motion:reduce){.btn:active{transform:none}}
@@ -50,14 +53,25 @@ h2{font-size:clamp(30px,6vw,56px)}
 
 <div id="menu" class="overlay">
   <h1>Shoot<br>to Win</h1>
-  <p class="lead">Przebij się przez dachy miasta o zmierzchu, zestrzel roboty i drony, a na końcu trasy pokonaj Strażnika.</p>
-  
+  <p class="lead" id="levelBlurb">Pięć etapów, jeden wynik. Przebij się przez dachy, pokonaj Wartownika i Strażnika.</p>
+
   <div class="diff-wrap">
-    <span class="diff-title">Wybierz poziom trudności:</span>
+    <span class="diff-title">Poziom</span>
+    <div class="diff-group" id="levelGroup">
+      <button class="lvl-btn active" data-level="0" type="button">1</button>
+      <button class="lvl-btn" data-level="1" type="button">2</button>
+      <button class="lvl-btn" data-level="2" type="button">3</button>
+      <button class="lvl-btn" data-level="3" type="button">4</button>
+      <button class="lvl-btn" data-level="4" type="button">5</button>
+    </div>
+  </div>
+
+  <div class="diff-wrap">
+    <span class="diff-title">Trudność</span>
     <div class="diff-group">
-      <button class="diff-btn" data-diff="easy">Łatwy</button>
-      <button class="diff-btn active" data-diff="normal">Średni</button>
-      <button class="diff-btn" data-diff="hard">Trudny</button>
+      <button class="diff-btn" data-diff="easy" type="button" title="7 żyć, wolniejsze pociski">Łatwy</button>
+      <button class="diff-btn active" data-diff="normal" type="button" title="5 żyć">Średni</button>
+      <button class="diff-btn" data-diff="hard" type="button" title="3 życia, szybsze pociski">Trudny</button>
     </div>
   </div>
 
@@ -65,26 +79,32 @@ h2{font-size:clamp(30px,6vw,56px)}
     <b>Ruch</b><span>A / D lub strzałki</span>
     <b>Skok</b><span>W, spacja lub strzałka w górę (przytrzymaj = wyżej)</span>
     <b>Strzał</b><span>J, X lub klik myszą (przytrzymaj = seria)</span>
+    <b>Unik</b><span>Shift lub L. Krótki ślizg w bok, krótszy niż skok.</span>
+    <b>Pad</b><span>Gałka lub krzyżak, A skok, X albo RT strzał, B albo RB unik, Start pauza</span>
+    <b>Cel</b><span>Portal na końcu poziomu. Przed areną czeka Wartownik.</span>
     <b>Pauza</b><span>P lub Esc</span>
     <b>Dźwięk</b><span>M włącza i wyłącza</span>
   </div>
 
   <p class="note" id="touchNote">Na telefonie sterujesz przyciskami na ekranie. Najwygodniej grać w poziomie.</p>
-  
+
   <div class="btn-row">
-    <button class="btn hidden" id="resumeBtn">Kontynuuj</button>
-    <button class="btn" id="startBtn">Nowa gra</button>
+    <button class="btn hidden" id="resumeBtn" type="button">Kontynuuj</button>
+    <button class="btn" id="startBtn" type="button">Graj</button>
   </div>
   <p id="saveInfo" class="save-status"></p>
-  <p class="credit">Created using Anthropic Claude & Gemini</p>
+  <p class="credit">Created using Anthropic Claude &amp; Gemini</p>
 </div>
 
 <div id="end" class="overlay hidden">
   <h2 id="endTitle">Wygrana!</h2>
   <p class="lead" id="endText"></p>
   <div class="btn-row">
-    <button class="btn" id="againBtn">Zagraj od nowa</button>
-    <button class="btn sec hidden" id="retryCheckpointBtn">Wróć do punktu zapisu</button>
+    <button class="btn hidden" id="nextBtn" type="button">Następny poziom</button>
+    <button class="btn hidden" id="retryCheckpointBtn" type="button">Wróć do punktu zapisu</button>
+    <button class="btn sec hidden" id="retryLevelBtn" type="button">Powtórz poziom</button>
+    <button class="btn hidden" id="againBtn" type="button">Od początku</button>
+    <button class="btn sec" id="menuBtn" type="button">Menu</button>
   </div>
 </div>
 
@@ -93,16 +113,17 @@ h2{font-size:clamp(30px,6vw,56px)}
     <button class="tb" data-k="left" aria-label="W lewo">◀</button>
     <button class="tb" data-k="right" aria-label="W prawo">▶</button>
   </div>
-  <button class="tb" id="pauseBtn">Pauza</button>
+  <button class="tb" id="pauseBtn" type="button">Pauza</button>
   <div class="pad r">
-    <button class="tb" data-k="jump">Skok</button>
-    <button class="tb fire" data-k="shoot">Ogień</button>
+    <button class="tb dodge" data-k="dodge" type="button">Unik</button>
+    <button class="tb" data-k="jump" type="button">Skok</button>
+    <button class="tb fire" data-k="shoot" type="button">Ogień</button>
   </div>
 </div>
 
 <script>
 (() => {
-const W = 960, H = 540, WORLD = 5200, STEP = 1000 / 60;
+const W = 960, H = 540, STEP = 1000 / 60;
 const C = {
   sky1:'#1E1538', sky2:'#7A2E5C', sky3:'#F28C38', sun:'#FFC978',
   far:'#3B2557', near:'#24183D', lit:'#F7B267',
@@ -111,22 +132,246 @@ const C = {
   ink:'#160F28', paper:'#FFF3D6', eb:'#FF5E8A'
 };
 
-const CHECKPOINTS = [
-  { name: 'Sektor 1 (Start)', x: 80, y: 400 },
-  { name: 'Sektor 2 (Dachy A)', x: 1300, y: 400 },
-  { name: 'Sektor 3 (Dachy B)', x: 2350, y: 400 },
-  { name: 'Sektor 4 (Przeprawa)', x: 3200, y: 400 },
-  { name: 'Sektor 5 (Arena Strażnika)', x: 4350, y: 400 }
-];
-
 const DIFFICULTY_CONFIG = {
   easy:   { label: 'Łatwy', hp: 7, maxHp: 7, bossHp: 30, enemyCoolMod: 1.35, bulletSpdMod: 0.85 },
   normal: { label: 'Średni', hp: 5, maxHp: 5, bossHp: 40, enemyCoolMod: 1.0, bulletSpdMod: 1.0 },
   hard:   { label: 'Trudny', hp: 3, maxHp: 3, bossHp: 50, enemyCoolMod: 0.75, bulletSpdMod: 1.2 }
 };
 
+const LEVELS = [
+  {
+    name: 'Dachy o zmierzchu',
+    blurb: 'Dachy o zmierzchu. Skacz przez przerwy i zestrzel roboty. Nad dachami jest słabo widoczny skrót.',
+    world: 3000,
+    seed: 7,
+    theme: {
+      sky: ['#1E1538', '#7A2E5C', '#F28C38'],
+      orb: '#FFC978', glow: 'rgba(255,201,120,.22)', orbX: 680, orbY: 360, orbR: 72,
+      far: '#3B2557', near: '#24183D', lit: '#F7B267',
+      ground: '#1D3540', seam: '#16303A', stars: false
+    },
+    sign: { x: 150, lines: ['Portal czeka', 'na końcu'] },
+    checkpoints: [
+      { name: 'Start', x: 70, y: 440 },
+      { name: 'Drugi dach', x: 1200, y: 440 },
+      { name: 'Ostatni dach', x: 2200, y: 440 }
+    ],
+    solids: [
+      [0, 480, 1000, 80], [1110, 480, 880, 80], [2100, 480, 900, 80],
+      [300, 380, 150, 18], [620, 290, 140, 18],
+      [1280, 370, 160, 18], [1560, 290, 140, 18], [1860, 380, 100, 18],
+      [2260, 360, 150, 18], [2560, 270, 140, 18], [2780, 370, 130, 18]
+    ],
+    movers: [],
+    walkers: [
+      { x: 720, surf: 480, minX: 200, maxX: 980 },
+      { x: 1500, surf: 480, minX: 1180, maxX: 1970 },
+      { x: 1800, surf: 480, minX: 1400, maxX: 1970 },
+      { x: 1600, surf: 290, minX: 1570, maxX: 1690, speed: 0.9 },
+      { x: 2500, surf: 480, minX: 2180, maxX: 2980 }
+    ],
+    drones: [
+      { x: 1040, y: 330 },
+      { x: 2040, y: 320 }
+    ],
+    turrets: [],
+    secrets: [
+      [800, 200, 200, 12],
+      [1080, 155, 180, 12],
+      [1320, 190, 180, 12],
+      [1560, 140, 180, 12],
+      [1800, 175, 340, 12]
+    ],
+    pickups: [
+      { x: 660, y: 264, type: 'hp' },
+      { x: 1410, y: 164, type: 'rapid', secret: true },
+      { x: 2600, y: 244, type: 'triple' }
+    ],
+    boss: null,
+    exit: { x: 2920, y: 380, w: 48, h: 100 }
+  },
+  {
+    name: 'Nocna przeprawa',
+    blurb: 'Nocna przeprawa. Ruchome platformy wożą nad przepaścią. Bez nich nie przejdziesz.',
+    world: 3400,
+    seed: 21,
+    theme: {
+      sky: ['#070B16', '#152033', '#1E3A46'],
+      orb: '#E7EEF8', glow: 'rgba(231,238,248,.14)', orbX: 740, orbY: 108, orbR: 32,
+      far: '#1A2740', near: '#121826', lit: '#7ED0C8',
+      ground: '#1A2830', seam: '#101A22', stars: true
+    },
+    sign: { x: 140, lines: ['Wskocz na', 'platformę'] },
+    checkpoints: [
+      { name: 'Start', x: 60, y: 440 },
+      { name: 'Za przepaścią', x: 1360, y: 440 },
+      { name: 'Ostatni odcinek', x: 2520, y: 440 }
+    ],
+    solids: [
+      [0, 480, 900, 80], [1320, 480, 780, 80], [2480, 480, 920, 80],
+      [240, 380, 140, 18], [520, 290, 130, 18],
+      [1400, 380, 150, 18], [1640, 250, 150, 18],
+      [2680, 370, 150, 18], [3050, 290, 140, 18]
+    ],
+    movers: [
+      { x: 760, y: 410, w: 150, axis: 'x', min: 760, max: 1220, speed: 2.2, dir: 1 },
+      { x: 1960, y: 410, w: 150, axis: 'x', min: 1960, max: 2380, speed: 2.2, dir: 1 },
+      { x: 1560, y: 452, w: 130, axis: 'y', min: 250, max: 452, speed: 1.25, dir: -1 }
+    ],
+    walkers: [
+      { x: 500, surf: 480, minX: 80, maxX: 860 },
+      { x: 1550, surf: 480, minX: 1360, maxX: 1980 },
+      { x: 2800, surf: 480, minX: 2520, maxX: 3100 },
+      { x: 3000, surf: 480, minX: 2700, maxX: 3160, speed: 1.15 }
+    ],
+    drones: [
+      { x: 1080, y: 300 },
+      { x: 2260, y: 300 },
+      { x: 2900, y: 240 }
+    ],
+    turrets: [
+      { x: 2020, y: 452, face: -1 },
+      { x: 3230, y: 452, face: -1 }
+    ],
+    pickups: [
+      { x: 560, y: 264, type: 'hp' },
+      { x: 1700, y: 224, type: 'triple' },
+      { x: 2720, y: 344, type: 'hp' }
+    ],
+    boss: null,
+    exit: { x: 3320, y: 380, w: 48, h: 100 }
+  },
+  {
+    name: 'Wieże strażnicze',
+    blurb: 'Wieże strażnicze. Wieżyczki strzelają na wprost — zniszcz je albo przeskocz serię.',
+    world: 3800,
+    seed: 33,
+    theme: {
+      sky: ['#241028', '#6A2A4A', '#D4653A'],
+      orb: '#FFB070', glow: 'rgba(255,176,112,.2)', orbX: 180, orbY: 280, orbR: 60,
+      far: '#3A2048', near: '#2A1838', lit: '#F0A35E',
+      ground: '#2C2438', seam: '#1A1624', stars: false
+    },
+    sign: { x: 130, lines: ['Zniszcz', 'wieżyczki'] },
+    checkpoints: [
+      { name: 'Start', x: 60, y: 440 },
+      { name: 'Wieże', x: 1100, y: 440 },
+      { name: 'Most', x: 1960, y: 440 },
+      { name: 'Przed portalem', x: 2760, y: 440 }
+    ],
+    solids: [
+      [0, 480, 900, 80], [1010, 480, 740, 80], [1860, 480, 690, 80], [2660, 480, 1140, 80],
+      [250, 370, 140, 18], [560, 270, 130, 18],
+      [1160, 370, 150, 18], [1460, 280, 140, 18],
+      [2020, 360, 140, 18], [2280, 240, 140, 18],
+      [2860, 370, 150, 18], [3180, 280, 150, 18], [3500, 370, 140, 18]
+    ],
+    movers: [],
+    walkers: [
+      { x: 600, surf: 480, minX: 120, maxX: 860, speed: 1.15 },
+      { x: 1300, surf: 480, minX: 1080, maxX: 1720, speed: 1.25 },
+      { x: 1580, surf: 480, minX: 1200, maxX: 1720, speed: 1.35 },
+      { x: 2200, surf: 480, minX: 1940, maxX: 2520, speed: 1.25 },
+      { x: 3000, surf: 480, minX: 2740, maxX: 3400, speed: 1.3 },
+      { x: 3300, surf: 480, minX: 3000, maxX: 3520, speed: 1.15 }
+    ],
+    drones: [
+      { x: 960, y: 320 },
+      { x: 1810, y: 300 },
+      { x: 2610, y: 310 }
+    ],
+    turrets: [
+      { x: 2320, y: 212, face: -1 },
+      { x: 2920, y: 342, face: -1 },
+      { x: 3600, y: 452, face: -1 }
+    ],
+    pickups: [
+      { x: 600, y: 244, type: 'hp' },
+      { x: 1500, y: 254, type: 'rapid' },
+      { x: 2060, y: 334, type: 'hp' },
+      { x: 3240, y: 254, type: 'triple' }
+    ],
+    boss: null,
+    exit: { x: 3700, y: 380, w: 48, h: 100 }
+  },
+  {
+    name: 'Wartownik',
+    blurb: 'Wartownik. Mniejszy od Strażnika i szybszy. Unik wchodzi tu w grę. Pokonanie otwiera arenę.',
+    world: 1280,
+    seed: 51,
+    theme: {
+      sky: ['#1A1024', '#4A2044', '#C45A48'],
+      orb: '#F0A090', glow: 'rgba(240,160,144,.16)', orbX: 180, orbY: 120, orbR: 40,
+      far: '#321828', near: '#241018', lit: '#E07A62',
+      ground: '#2A1824', seam: '#160E14', stars: true
+    },
+    sign: { x: 620, lines: ['Wartownik', 'broni mostu'] },
+    checkpoints: [
+      { name: 'Most', x: 48, y: 440 }
+    ],
+    solids: [
+      [0, 480, 1280, 80],
+      [40, 400, 110, 18], [190, 320, 110, 18], [360, 390, 120, 18], [540, 300, 110, 18]
+    ],
+    movers: [],
+    walkers: [],
+    drones: [],
+    turrets: [],
+    pickups: [
+      { x: 70, y: 374, type: 'hp' }
+    ],
+    boss: { x: 1080, y: 392, left: 880, right: 1160, wake: 360, mini: true },
+    exit: null
+  },
+  {
+    name: 'Arena Strażnika',
+    blurb: 'Arena Strażnika. Zostań na placu i powal go. To finał.',
+    world: 960,
+    seed: 44,
+    theme: {
+      sky: ['#14060C', '#3A1020', '#6A2030'],
+      orb: '#E25A4A', glow: 'rgba(226,90,74,.18)', orbX: 780, orbY: 140, orbR: 46,
+      far: '#2A1020', near: '#1A0C14', lit: '#C45A4A',
+      ground: '#2A1520', seam: '#160C10', stars: true
+    },
+    sign: { x: 250, lines: ['Pokonaj', 'Strażnika'] },
+    checkpoints: [
+      { name: 'Arena', x: 48, y: 440 }
+    ],
+    solids: [
+      [0, 480, 960, 80],
+      [40, 400, 120, 18], [200, 310, 120, 18], [390, 390, 130, 18],
+      [560, 290, 120, 18], [730, 400, 110, 18]
+    ],
+    movers: [],
+    walkers: [],
+    drones: [],
+    turrets: [],
+    pickups: [
+      { x: 80, y: 374, type: 'hp' },
+      { x: 230, y: 284, type: 'triple' }
+    ],
+    boss: { x: 790, y: 350, left: 600, right: 840, wake: 260 },
+    exit: null
+  }
+];
+
 let currentDifficulty = 'normal';
-let currentCheckpointIdx = 0;
+let levelIndex = 0;
+let selectedLevel = 0;
+let unlocked = 0;
+let inProgress = false;
+let pendingNext = false;
+let worldW = 960;
+let theme = LEVELS[0].theme;
+let solids = [];
+let movers = [];
+let checkpoints = [];
+let exit = null;
+let sign = null;
+let far = [];
+let near = [];
+let stars = [];
 
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 let scale = 1;
@@ -139,7 +384,6 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
-/* ---------- helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 function rr(x, y, w, h, r) {
@@ -151,25 +395,78 @@ function rr(x, y, w, h, r) {
 function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
 function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
 
-/* ---------- storage ---------- */
-const SAVE_KEY = 'shoot_to_win_save_v1';
+const SAVE_KEY = 'shoot_to_win_save_v3';
+const SAVE_KEY_V2 = 'shoot_to_win_save_v2';
+const SAVE_KEY_V1 = 'shoot_to_win_save_v1';
+function blankBests() { return LEVELS.map(() => 0); }
+function normalizeSave(data) {
+  const bests = blankBests();
+  if (Array.isArray(data.bestByLevel)) {
+    for (let i = 0; i < bests.length; i++) bests[i] = data.bestByLevel[i] | 0;
+  }
+  let level = data.level | 0;
+  let unlockedN = data.unlocked | 0;
+  if ((data.version | 0) < 3) {
+    if (level >= 3) level += 1;
+    if (unlockedN >= 3) unlockedN += 1;
+  }
+  return {
+    version: 3,
+    inProgress: !!data.inProgress,
+    pendingNext: !!data.pendingNext,
+    level: clamp(level, 0, LEVELS.length - 1),
+    checkpoint: data.checkpoint | 0,
+    unlocked: clamp(unlockedN, 0, LEVELS.length - 1),
+    difficulty: data.difficulty || 'normal',
+    score: data.score | 0,
+    scoreAtLevelStart: data.scoreAtLevelStart | 0,
+    runFrames: data.runFrames | 0,
+    best: data.best | 0,
+    bestByLevel: bests
+  };
+}
 function saveGame() {
   const data = {
+    version: 3,
+    inProgress,
+    pendingNext,
+    level: levelIndex,
     checkpoint: currentCheckpointIdx,
+    unlocked,
     difficulty: currentDifficulty,
-    score: score,
-    best: best
+    score,
+    scoreAtLevelStart,
+    runFrames,
+    best,
+    bestByLevel
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
 }
-function loadSave() {
+function readSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data && data.version === 3) return normalizeSave(data);
+    }
+    const v2 = localStorage.getItem(SAVE_KEY_V2);
+    if (v2) return normalizeSave(JSON.parse(v2));
+    const oldRaw = localStorage.getItem(SAVE_KEY_V1);
+    if (!oldRaw) return null;
+    const old = JSON.parse(oldRaw);
+    return normalizeSave({
+      version: 1, inProgress: false, pendingNext: false, level: 0, checkpoint: 0, unlocked: 0,
+      difficulty: old.difficulty || 'normal', score: 0, scoreAtLevelStart: 0, runFrames: 0, best: old.best || 0
+    });
   } catch (e) { return null; }
 }
+function levelPoints() { return Math.max(0, score - scoreAtLevelStart); }
+function commitLevelRecord() {
+  const pts = levelPoints();
+  if (pts > (bestByLevel[levelIndex] || 0)) bestByLevel[levelIndex] = pts;
+  best = Math.max(best, score);
+}
 
-/* ---------- audio ---------- */
 let AC = null, muted = false;
 function initAudio() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (AC && AC.state === 'suspended') AC.resume(); }
 function beep(freq, dur, type = 'square', vol = .04, slide = 0) {
@@ -188,9 +485,32 @@ function noise(dur, vol) {
   s.connect(g).connect(AC.destination); s.start();
 }
 
-/* ---------- input ---------- */
-const keys = { left:false, right:false, jump:false, shoot:false };
-const keyMap = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyJ:'shoot', KeyX:'shoot', KeyK:'shoot' };
+const keys = { left:false, right:false, jump:false, shoot:false, dodge:false };
+const pad = { left:false, right:false, jump:false, shoot:false, dodge:false };
+let padOn = false, padPauseWas = false;
+function want(name) { return !!(keys[name] || pad[name]); }
+const keyMap = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyJ:'shoot', KeyX:'shoot', KeyK:'shoot', ShiftLeft:'dodge', ShiftRight:'dodge', KeyL:'dodge' };
+function pollGamepad() {
+  pad.left = pad.right = pad.jump = pad.shoot = pad.dodge = false;
+  let list = null;
+  try { list = navigator.getGamepads ? navigator.getGamepads() : null; } catch (e) { list = null; }
+  if (!list) { padOn = false; return; }
+  let g = null;
+  for (let i = 0; i < list.length; i++) if (list[i] && list[i].connected) { g = list[i]; break; }
+  if (!g) { padOn = false; padPauseWas = false; return; }
+  padOn = true;
+  const ax = (g.axes && g.axes[0]) || 0;
+  const pressed = i => !!(g.buttons && g.buttons[i] && g.buttons[i].pressed);
+  pad.left = ax < -.32 || pressed(14);
+  pad.right = ax > .32 || pressed(15);
+  if (pad.left && pad.right) pad.right = false;
+  pad.jump = pressed(0);
+  pad.shoot = pressed(2) || pressed(7);
+  pad.dodge = pressed(1) || pressed(5);
+  const pause = pressed(9);
+  if (pause && !padPauseWas && (state === 'play' || state === 'pause')) togglePause();
+  padPauseWas = pause;
+}
 addEventListener('keydown', e => {
   const k = keyMap[e.code];
   if (k && state === 'play') { keys[k] = true; e.preventDefault(); }
@@ -212,105 +532,168 @@ function clearKeys() { for (const k in keys) keys[k] = false; document.querySele
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (!isTouch) document.getElementById('touchNote').classList.add('hidden');
 
-/* ---------- level ---------- */
-const solids = [
-  [0,480,1100,80],[1250,480,900,80],[2300,480,700,80],[3150,480,1000,80],[4300,480,900,80],
-  [400,380,160,18],[650,300,140,18],[900,370,120,18],
-  [1450,380,180,18],[1750,300,160,18],[2000,380,120,18],
-  [2450,370,150,18],[2700,290,150,18],[2900,390,110,18],
-  [3350,370,180,18],[3650,290,160,18],[3950,380,140,18],
-  [4400,390,130,18],[4600,320,130,18]
-].map(([x, y, w, h]) => ({ x, y, w, h, oneWay: h < 40 }));
-
-const R = rng(7), far = [], near = [];
-for (let x = -60; x < WORLD * .2 + W + 100;) { const w = 40 + R() * 70; far.push({ x, w, h: 60 + R() * 140 }); x += w + R() * 10; }
-for (let x = -60; x < WORLD * .5 + W + 100;) {
-  const w = 60 + R() * 90, h = 50 + R() * 150, wins = [];
-  for (let wy = 14; wy < h - 10; wy += 18) for (let wx = 8; wx < w - 10; wx += 14) if (R() < .28) wins.push([wx, wy]);
-  near.push({ x, w, h, wins, tower: R() < .2 }); x += w + 10 + R() * 40;
+function walker(x, surf, minX, maxX, speed = 1.1) {
+  return { type:'walker', x, y:surf - 36, w:30, h:36, vx:Math.abs(speed), face:1, minX, maxX, hp:3, maxHp:3, hit:0, cool:60 + Math.random() * 50, step:0 };
+}
+function drone(x, y) {
+  return { type:'drone', bx:x, by:y, x, y, w:34, h:22, t:Math.random() * 6, hp:2, maxHp:2, hit:0, cool:90 + Math.random() * 60 };
+}
+function turret(x, y, face) {
+  return { type:'turret', x, y, w:34, h:28, face, hp:3, maxHp:3, hit:0, cool:40 + Math.random() * 40 };
 }
 
-function walker(x, surf, minX, maxX) { return { type:'walker', x, y:surf - 36, w:30, h:36, vx:1.1, face:1, minX, maxX, hp:3, hit:0, cool:60 + Math.random() * 60, step:0 }; }
-function drone(x, y) { return { type:'drone', bx:x, by:y, x, y, w:34, h:22, t:Math.random() * 6, hp:2, hit:0, cool:90 + Math.random() * 60 }; }
-
-/* ---------- state ---------- */
-let state = 'menu', player, lastSafe, bullets, particles, popups, enemies, pickups, boss, score = 0, best = 0;
-let frame = 0, shake = 0, dead = false, winTimer = 0, loseTimer = 0, prevJump = false;
+let state = 'menu', player, lastSafe, bullets, particles, popups, enemies, pickups, boss;
+let score = 0, best = 0, bestByLevel = blankBests(), scoreAtLevelStart = 0, currentCheckpointIdx = 0;
+let anim = 0, runFrames = 0, shake = 0, dead = false, winTimer = 0, loseTimer = 0, banner = 0, finishing = false, prevJump = false, prevDodge = false;
 const cam = { x: 0 };
 
-function reset(checkpointIndex = 0, keepScore = false) {
-  currentCheckpointIdx = checkpointIndex;
-  const cp = CHECKPOINTS[checkpointIndex] || CHECKPOINTS[0];
+function buildScenery(seed, width) {
+  const R = rng(seed);
+  far = []; near = []; stars = [];
+  for (let x = -60; x < width * .25 + W + 100;) {
+    const w = 40 + R() * 70;
+    far.push({ x, w, h: 60 + R() * 140 });
+    x += w + R() * 10;
+  }
+  for (let x = -60; x < width * .55 + W + 100;) {
+    const bw = 60 + R() * 90, h = 50 + R() * 150, wins = [];
+    for (let wy = 14; wy < h - 10; wy += 18) for (let wx = 8; wx < bw - 10; wx += 14) if (R() < .28) wins.push([wx, wy]);
+    near.push({ x, w: bw, h, wins, tower: R() < .18 });
+    x += bw + 10 + R() * 40;
+  }
+  if (theme.stars) {
+    for (let i = 0; i < 90; i++) stars.push({ x: R() * (width + W), y: 10 + R() * 250, s: 1 + R() * 1.8, a: .35 + R() * .6 });
+  }
+}
+
+function applyLevel(index, checkpointIndex, opts = {}) {
+  levelIndex = clamp(index, 0, LEVELS.length - 1);
+  const def = LEVELS[levelIndex];
   const diff = DIFFICULTY_CONFIG[currentDifficulty];
+  currentCheckpointIdx = clamp(checkpointIndex, 0, def.checkpoints.length - 1);
+  const cp = def.checkpoints[currentCheckpointIdx];
+
+  worldW = def.world;
+  theme = def.theme;
+  sign = def.sign;
+  checkpoints = def.checkpoints;
+  exit = def.exit ? { ...def.exit } : null;
+  solids = def.solids.map(([x, y, w, h]) => ({ x, y, w, h, oneWay: h < 40 }));
+  for (const s of def.secrets || []) solids.push({ x: s[0], y: s[1], w: s[2], h: s[3], oneWay: true, secret: true });
+  movers = def.movers.map(m => ({ ...m, h: 16, oneWay: true, prevX: m.x, prevY: m.y, dir: m.dir ?? 1 }));
+
+  if (typeof opts.score === 'number') score = opts.score;
+  else if (!opts.keepScore) score = 0;
+  if (!opts.preview) {
+    if (typeof opts.scoreBase === 'number') scoreAtLevelStart = opts.scoreBase;
+    else if (opts.rebase || !opts.keepScore) scoreAtLevelStart = score;
+    if (typeof opts.runFrames === 'number') runFrames = opts.runFrames;
+    else if (!opts.keepTime) runFrames = 0;
+  }
 
   player = {
-    x: cp.x, y: cp.y, w:26, h:40, vx:0, vy:0, onGround:false, facing:1,
-    hp: diff.hp, maxHp: diff.maxHp, inv:0, cool:0, triple:0, flash:0, coyote:0, jumpBuf:0, run:0
+    x: cp.x, y: cp.y, w: 26, h: 40, vx: 0, vy: 0, onGround: false, facing: 1, riding: null,
+    hp: diff.hp, maxHp: diff.maxHp, inv: opts.preview ? 0 : 70, cool: 0, triple: 0, rapid: 0, flash: 0, coyote: 0, jumpBuf: 0, run: 0,
+    dodge: 0, dodgeCd: 0, dodgeDir: 1
   };
   lastSafe = { x: cp.x, y: cp.y };
-  bullets = []; particles = []; popups = [];
+  bullets = []; particles = []; popups = []; boss = null;
 
-  boss = { type:'boss', x:4980, y:350, w:110, h:130, hp: diff.bossHp, max: diff.bossHp, hit:0, cool:90, volley:0, t:0, dir:-1, active:false };
-  
-  const allWalkers = [
-    walker(700,480,560,1090), walker(1000,480,700,1095),
-    walker(1400,480,1260,2140), walker(1900,480,1500,2140), walker(1770,300,1750,1910),
-    walker(2500,480,2310,2990), walker(2720,290,2700,2850),
-    walker(3300,480,3160,4140), walker(3700,480,3300,4140), walker(3960,380,3950,4090)
-  ];
-  const allDrones = [
-    drone(1050,340), drone(1650,350), drone(2250,330), drone(2850,340), drone(3500,340), drone(4050,330)
-  ];
+  const keep = x => x >= cp.x - 180;
+  enemies = [];
+  for (const w of def.walkers) if (keep(w.x)) enemies.push(walker(w.x, w.surf, w.minX, w.maxX, w.speed || 1.1));
+  for (const d of def.drones) if (keep(d.x)) enemies.push(drone(d.x, d.y));
+  for (const t of def.turrets) if (keep(t.x)) enemies.push(turret(t.x, t.y, t.face));
+  if (def.boss) {
+    const b = def.boss;
+    const mini = !!b.mini;
+    const hp = mini ? Math.max(12, Math.round(diff.bossHp * .55)) : diff.bossHp;
+    boss = {
+      type: 'boss', mini, name: mini ? 'Wartownik' : 'Strażnik', points: mini ? 800 : 2000,
+      x: b.x, y: b.y, baseY: b.y, w: mini ? 74 : 110, h: mini ? 88 : 130,
+      hp, max: hp, maxHp: hp,
+      hit: 0, cool: mini ? 70 : 90, volley: 0, t: 0, dir: -1, active: false,
+      left: b.left, right: b.right, wake: b.wake
+    };
+    enemies.push(boss);
+  }
+  pickups = def.pickups.filter(p => keep(p.x)).map(p => ({ x: p.x, y: p.y, w: 22, h: 22, t: Math.random() * 6, type: p.type, secret: !!p.secret }));
 
-  // Filtruj wrogów i pickupy leżące znacznie przed punktem wznowienia
-  enemies = [
-    ...allWalkers.filter(e => e.x >= cp.x - 200),
-    ...allDrones.filter(e => e.bx >= cp.x - 200),
-    boss
-  ];
-
-  const allPickups = [
-    { x:709, y:266, type:'hp' }, { x:2764, y:256, type:'triple' }, { x:3719, y:256, type:'hp' },
-    { x:4455, y:356, type:'triple' }, { x:4654, y:286, type:'hp' }
-  ];
-  pickups = allPickups.filter(p => p.x >= cp.x - 200).map(p => ({ ...p, w:22, h:22, t:Math.random() * 6 }));
-
-  if (!keepScore) score = 0;
-  frame = 0; shake = 0; dead = false; winTimer = 0; loseTimer = 0;
-  cam.x = clamp(player.x - W * .3, 0, WORLD - W);
+  buildScenery(def.seed, worldW);
+  anim = 0; shake = 0; dead = false; winTimer = 0; loseTimer = 0; finishing = false;
+  banner = opts.preview ? 0 : 170;
+  cam.x = clamp(player.x - W * .3, 0, Math.max(0, worldW - W));
   prevJump = false;
-}
-reset(0);
+  prevDodge = false;
 
-/* ---------- effects ---------- */
+  if (!opts.preview) {
+    inProgress = true;
+    pendingNext = false;
+    saveGame();
+  }
+}
+
 function boom(x, y, n, cols = [C.foe, C.hero, C.paper, C.eb]) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * (n > 40 ? 7 : 4);
-    particles.push({ x, y, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 1, life:30 + Math.random() * 30, max:60, c:cols[i % cols.length], s:3 + Math.random() * 4 });
+    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1, life: 30 + Math.random() * 30, max: 60, c: cols[i % cols.length], s: 3 + Math.random() * 4 });
   }
 }
-function spark(x, y, c) { for (let i = 0; i < 5; i++) particles.push({ x, y, vx:(Math.random() - .5) * 4, vy:(Math.random() - .5) * 4, life:14, max:14, c, s:2 + Math.random() * 2 }); }
-function popup(x, y, text) { popups.push({ x, y, text, t:50 }); }
+function spark(x, y, c) { for (let i = 0; i < 5; i++) particles.push({ x, y, vx: (Math.random() - .5) * 4, vy: (Math.random() - .5) * 4, life: 14, max: 14, c, s: 2 + Math.random() * 2 }); }
+function popup(x, y, text) { popups.push({ x, y, text, t: 50 }); }
 
-/* ---------- gameplay ---------- */
+function tickMovers() {
+  for (const m of movers) {
+    m.prevX = m.x; m.prevY = m.y;
+    if (m.axis === 'x') {
+      m.x += m.dir * m.speed;
+      if (m.x < m.min) { m.x = m.min; m.dir = 1; }
+      if (m.x > m.max) { m.x = m.max; m.dir = -1; }
+    } else {
+      m.y += m.dir * m.speed;
+      if (m.y < m.min) { m.y = m.min; m.dir = 1; }
+      if (m.y > m.max) { m.y = m.max; m.dir = -1; }
+    }
+  }
+}
+
 function moveAndCollide(e) {
   e.x += e.vx;
-  for (const s of solids) if (!s.oneWay && overlap(e, s)) { if (e.vx > 0) e.x = s.x - e.w; else if (e.vx < 0) e.x = s.x + s.w; e.vx = 0; }
+  for (const s of solids) {
+    if (s.oneWay || !overlap(e, s)) continue;
+    if (e.vx > 0) e.x = s.x - e.w;
+    else if (e.vx < 0) e.x = s.x + s.w;
+    else {
+      const pushL = e.x + e.w - s.x, pushR = s.x + s.w - e.x;
+      e.x += pushL < pushR ? -pushL : pushR;
+    }
+    e.vx = 0;
+  }
   const prevBottom = e.y + e.h;
-  e.y += e.vy; e.onGround = false;
+  e.y += e.vy;
+  e.onGround = false;
+  e.riding = null;
   for (const s of solids) {
     if (!overlap(e, s)) continue;
-    if (s.oneWay) { if (e.vy > 0 && prevBottom <= s.y + .01) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; } }
-    else if (e.vy > 0) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; }
+    if (s.oneWay) {
+      if (e.vy >= 0 && prevBottom <= s.y + .01) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; }
+    } else if (e.vy > 0) { e.y = s.y - e.h; e.vy = 0; e.onGround = true; }
     else if (e.vy < 0) { e.y = s.y + s.h; e.vy = 0; }
+  }
+  for (const m of movers) {
+    const horiz = e.x + e.w > m.x + 4 && e.x < m.x + m.w - 4;
+    if (!horiz || !overlap(e, m)) continue;
+    const fromAbove = e.vy >= 0 && prevBottom <= m.y + Math.max(e.vy, 0) + 2 && e.y < m.y + 8;
+    if (fromAbove) { e.y = m.y - e.h; e.vy = 0; e.onGround = true; e.riding = m; }
   }
 }
 
 function hurt(srcX) {
   const p = player;
-  if (dead || p.inv > 0 || winTimer > 0) return;
+  if (dead || p.inv > 0 || p.dodge > 0 || winTimer > 0) return;
   p.hp--; p.inv = 80; shake = 10;
   p.vx = (p.x + p.w / 2 < srcX ? -1 : 1) * 5; p.vy = -5;
+  p.riding = null;
   beep(140, .22, 'sawtooth', .05, -80);
   boom(p.x + p.w / 2, p.y + 20, 10, [C.hero, C.paper]);
   if (p.hp <= 0) die();
@@ -325,24 +708,24 @@ function damageEnemy(e) {
   if (e.type === 'boss') e.active = true;
   if (e.hp > 0) return;
   e.dead = true;
-  const pts = { walker:100, drone:150, boss:2000 }[e.type];
+  const pts = e.points || ({ walker: 100, drone: 150, turret: 200, boss: 2000 }[e.type] || 100);
   score += pts; popup(e.x + e.w / 2, e.y, '+' + pts);
   if (e.type === 'boss') {
-    boom(e.x + e.w / 2, e.y + e.h / 2, 120); shake = 28; noise(1.2, .35);
-    bullets = bullets.filter(b => b.friendly); winTimer = 150;
+    boom(e.x + e.w / 2, e.y + e.h / 2, e.mini ? 70 : 120); shake = e.mini ? 16 : 28; noise(e.mini ? .7 : 1.2, e.mini ? .22 : .35);
+    bullets = bullets.filter(b => b.friendly); winTimer = e.mini ? 110 : 150;
   } else {
     boom(e.x + e.w / 2, e.y + e.h / 2, 24); shake = 6; noise(.35, .18);
-    if (Math.random() < .18) pickups.push({ x:e.x + e.w / 2 - 11, y:e.y + e.h - 26, w:22, h:22, t:0, type:'hp' });
+    if (Math.random() < .18) pickups.push({ x: e.x + e.w / 2 - 11, y: e.y + e.h - 26, w: 22, h: 22, t: 0, type: 'hp' });
   }
 }
 
 function checkSectorProgression() {
-  for (let i = CHECKPOINTS.length - 1; i >= 0; i--) {
-    if (player.x >= CHECKPOINTS[i].x - 40) {
+  for (let i = checkpoints.length - 1; i >= 0; i--) {
+    if (player.x >= checkpoints[i].x - 40) {
       if (i > currentCheckpointIdx) {
         currentCheckpointIdx = i;
         saveGame();
-        popup(player.x + player.w / 2, player.y - 10, 'ZAPISANO: ' + CHECKPOINTS[i].name);
+        popup(player.x + player.w / 2, player.y - 10, 'Zapis: ' + checkpoints[i].name);
         beep(740, .1, 'triangle', .05, 120);
       }
       break;
@@ -351,48 +734,84 @@ function checkSectorProgression() {
 }
 
 function update() {
-  frame++;
+  anim++;
+  runFrames++;
+  if (banner > 0) banner--;
   const p = player;
   const diff = DIFFICULTY_CONFIG[currentDifficulty];
+  tickMovers();
 
   if (!dead) {
-    const acc = p.onGround ? .9 : .6, max = 4.6;
-    if (keys.left) { p.vx -= acc; p.facing = -1; }
-    if (keys.right) { p.vx += acc; p.facing = 1; }
-    if (!keys.left && !keys.right) p.vx *= p.onGround ? .7 : .93;
-    p.vx = clamp(p.vx, -max, max);
+    if (p.riding) {
+      p.x += p.riding.x - p.riding.prevX;
+      if (p.vy >= 0) { p.y = p.riding.y - p.h; p.vy = 0; p.onGround = true; }
+    }
 
-    if (keys.jump && !prevJump) p.jumpBuf = 8;
-    prevJump = keys.jump;
-    if (p.jumpBuf > 0) p.jumpBuf--;
-    if (p.onGround) p.coyote = 7; else if (p.coyote > 0) p.coyote--;
-    if (p.jumpBuf > 0 && p.coyote > 0) { p.vy = -12.2; p.jumpBuf = 0; p.coyote = 0; beep(420, .1, 'square', .025, 300); }
-    p.vy += .55; if (!keys.jump && p.vy < 0) p.vy += .6;
-    p.vy = Math.min(p.vy, 14);
+    if (p.dodgeCd > 0) p.dodgeCd--;
+    const dodgePressed = want('dodge');
+    if (dodgePressed && !prevDodge && p.dodge <= 0 && p.dodgeCd <= 0 && winTimer === 0) {
+      const dir = want('left') && !want('right') ? -1 : want('right') && !want('left') ? 1 : (p.facing || 1);
+      p.dodge = 8; p.dodgeCd = 48; p.dodgeDir = dir; p.facing = dir; p.riding = null; p.vy = 0;
+      beep(720, .07, 'square', .028, 240);
+    }
+    prevDodge = dodgePressed;
+
+    if (p.dodge > 0) {
+      p.vx = p.dodgeDir * 7.2;
+      p.vy = 0;
+      p.jumpBuf = 0;
+      particles.push({ x: p.x + p.w / 2, y: p.y + 30, vx: -p.dodgeDir * 1.6, vy: .15, life: 10, max: 10, c: C.paper, s: 3 });
+    } else {
+      const acc = p.onGround ? .9 : .6, max = 4.6;
+      if (want('left')) { p.vx -= acc; p.facing = -1; }
+      if (want('right')) { p.vx += acc; p.facing = 1; }
+      if (!want('left') && !want('right')) p.vx *= p.onGround ? .7 : .93;
+      p.vx = clamp(p.vx, -max, max);
+
+      if (want('jump') && !prevJump) p.jumpBuf = 8;
+      if (p.jumpBuf > 0) p.jumpBuf--;
+      if (p.onGround) p.coyote = 7; else if (p.coyote > 0) p.coyote--;
+      if (p.jumpBuf > 0 && p.coyote > 0) {
+        p.vy = -12.2; p.jumpBuf = 0; p.coyote = 0; p.riding = null; p.onGround = false;
+        beep(420, .1, 'square', .025, 300);
+      }
+      p.vy += .55; if (!want('jump') && p.vy < 0) p.vy += .6;
+      p.vy = Math.min(p.vy, 14);
+    }
+    prevJump = want('jump');
     moveAndCollide(p);
-    p.x = clamp(p.x, 0, WORLD - p.w);
-    if (boss.active && !boss.dead && p.x < 4310) p.x = 4310;
-    if (p.onGround) lastSafe = { x:p.x, y:p.y };
+    p.x = clamp(p.x, 0, worldW - p.w);
+    if (p.onGround && !p.riding) lastSafe = { x: p.x, y: p.y };
     p.run += Math.abs(p.vx) * .09;
-
     checkSectorProgression();
 
     if (p.cool > 0) p.cool--;
     if (p.flash > 0) p.flash--;
     if (p.triple > 0) p.triple--;
+    if (p.rapid > 0) p.rapid--;
     if (p.inv > 0) p.inv--;
-    if (keys.shoot && p.cool <= 0) {
-      p.cool = 11; p.flash = 4;
+    if (want('shoot') && p.cool <= 0 && winTimer === 0 && p.dodge <= 0) {
+      p.cool = p.rapid > 0 ? 6 : 11; p.flash = 4;
       const bx = p.x + p.w / 2 + p.facing * 22, by = p.y + 20;
       const spread = p.triple > 0 ? [-.13, 0, .13] : [0];
-      for (const a of spread) bullets.push({ x:bx, y:by, vx:Math.cos(a) * 12 * p.facing, vy:Math.sin(a) * 12, friendly:true, life:70 });
+      for (const a of spread) bullets.push({ x: bx, y: by, vx: Math.cos(a) * 12 * p.facing, vy: Math.sin(a) * 12, friendly: true, life: 70 });
       beep(900, .06, 'square', .022, -550);
     }
 
+    if (exit && winTimer === 0 && overlap(p, exit)) {
+      winTimer = 90;
+      beep(880, .14, 'square', .04, 220);
+      boom(exit.x + exit.w / 2, exit.y + 46, 36, [C.hero, C.paper, C.lip]);
+      popup(p.x + p.w / 2, p.y - 12, 'Portal');
+    }
+
     if (p.y > H + 60) {
-      p.hp--; shake = 8; beep(160, .3, 'triangle', .05, -100);
-      if (p.hp <= 0) die();
-      else { p.x = lastSafe.x; p.y = lastSafe.y - 10; p.vx = p.vy = 0; p.inv = 90; }
+      if (winTimer > 0) { p.x = lastSafe.x; p.y = lastSafe.y; p.vx = p.vy = 0; p.riding = null; }
+      else {
+        p.hp--; shake = 8; beep(160, .3, 'triangle', .05, -100);
+        if (p.hp <= 0) die();
+        else { p.x = lastSafe.x; p.y = lastSafe.y - 10; p.vx = p.vy = 0; p.inv = 90; p.riding = null; }
+      }
     }
   }
 
@@ -401,51 +820,63 @@ function update() {
     if (e.dead) continue;
     if (e.hit > 0) e.hit--;
     const onScreen = e.x + e.w > cam.x - 150 && e.x < cam.x + W + 150;
-    if (!onScreen) continue;
+    if (!onScreen && e.type !== 'boss') continue;
     const dx = pcx - (e.x + e.w / 2), dy = pcy - (e.y + e.h / 2);
 
     if (e.type === 'walker') {
       e.near = !dead && Math.abs(dx) < 420 && Math.abs(dy) < 130;
       if (e.near) e.face = Math.sign(dx) || 1;
       else {
-        e.x += e.vx; e.face = Math.sign(e.vx); e.step += .2;
+        e.x += e.vx; e.face = Math.sign(e.vx) || 1; e.step += .2;
         if (e.x < e.minX) { e.x = e.minX; e.vx = Math.abs(e.vx); }
         if (e.x + e.w > e.maxX) { e.x = e.maxX - e.w; e.vx = -Math.abs(e.vx); }
         e.cool = Math.max(e.cool, 40 * diff.enemyCoolMod);
       }
       if (--e.cool <= 0 && e.near && winTimer === 0) {
-        bullets.push({ x:e.x + e.w / 2 + e.face * 22, y:e.y + 14, vx:e.face * 5.2 * diff.bulletSpdMod, vy:0, friendly:false, life:160 });
+        bullets.push({ x: e.x + e.w / 2 + e.face * 22, y: e.y + 14, vx: e.face * 5.2 * diff.bulletSpdMod, vy: 0, friendly: false, life: 160 });
         e.cool = (100 + Math.random() * 60) * diff.enemyCoolMod; beep(300, .08, 'sawtooth', .025, -120);
       }
     } else if (e.type === 'drone') {
       e.t += .025;
       e.x = e.bx + Math.sin(e.t * .6) * 90; e.y = e.by + Math.sin(e.t * 1.3) * 55;
-      const d = Math.hypot(dx, dy);
+      const d = Math.hypot(dx, dy) || 1;
       if (--e.cool <= 0 && !dead && d < 520 && winTimer === 0) {
-        bullets.push({ x:e.x + 17, y:e.y + 11, vx:(dx / d * 4) * diff.bulletSpdMod, vy:(dy / d * 4) * diff.bulletSpdMod, friendly:false, life:200 });
+        bullets.push({ x: e.x + 17, y: e.y + 11, vx: dx / d * 4 * diff.bulletSpdMod, vy: dy / d * 4 * diff.bulletSpdMod, friendly: false, life: 200 });
         e.cool = (110 + Math.random() * 70) * diff.enemyCoolMod; beep(520, .1, 'triangle', .03, -250);
       }
+    } else if (e.type === 'turret') {
+      const inFront = dx * e.face > 24;
+      if (--e.cool <= 0 && inFront && Math.abs(dx) < 520 && Math.abs(dy) < 110 && !dead && winTimer === 0) {
+        bullets.push({ x: e.x + e.w / 2 + e.face * 18, y: e.y + 13, vx: e.face * 5.4 * diff.bulletSpdMod, vy: 0, friendly: false, life: 180 });
+        e.cool = (88 + Math.random() * 36) * diff.enemyCoolMod; beep(260, .07, 'square', .03, -80);
+      }
     } else if (e.type === 'boss') {
-      if (!e.active && p.x > 4320) { e.active = true; shake = 10; beep(90, .6, 'sawtooth', .06, 60); }
+      if (!e.active && p.x > e.wake) { e.active = true; shake = 10; beep(90, .6, 'sawtooth', .06, 60); }
       if (!e.active) continue;
       const angry = e.hp < e.max / 2;
-      e.t++; e.x += e.dir * (angry ? 1.4 : .8);
-      if (e.x < 4780) e.dir = 1; if (e.x > 5080) e.dir = -1;
-      e.y = 350 + Math.sin(e.t * .05) * 6;
-      if (--e.cool <= 0 && !dead) {
+      e.t++;
+      e.x += e.dir * (e.mini ? (angry ? 1.85 : 1.2) : (angry ? 1.4 : .85));
+      if (e.x < e.left) e.dir = 1;
+      if (e.x > e.right) e.dir = -1;
+      e.y = e.baseY + Math.sin(e.t * (e.mini ? .08 : .05)) * (e.mini ? 10 : 8);
+      if (--e.cool <= 0 && !dead && winTimer === 0) {
         e.volley++;
-        const cx = e.x - 30, cy = e.y + 50, ang = Math.atan2(pcy - cy, pcx - cx);
-        if (e.volley % 3 === 0) {
-          bullets.push({ x:cx, y:cy, vx:Math.cos(ang) * 7.5 * diff.bulletSpdMod, vy:Math.sin(ang) * 7.5 * diff.bulletSpdMod, friendly:false, life:200, big:true });
+        const cx = e.mini ? e.x - 14 : e.x - 30, cy = e.mini ? e.y + 32 : e.y + 50, ang = Math.atan2(pcy - cy, pcx - cx);
+        if (!e.mini && e.volley % 3 === 0) {
+          bullets.push({ x: cx, y: cy, vx: Math.cos(ang) * 7.5 * diff.bulletSpdMod, vy: Math.sin(ang) * 7.5 * diff.bulletSpdMod, friendly: false, life: 200, big: true });
           beep(200, .2, 'sawtooth', .05, -120);
         } else {
-          for (let i = -2; i <= 2; i++) { const a = ang + i * .18; bullets.push({ x:cx, y:cy, vx:Math.cos(a) * 4.5 * diff.bulletSpdMod, vy:Math.sin(a) * 4.5 * diff.bulletSpdMod, friendly:false, life:260 }); }
-          beep(160, .25, 'square', .04, -60);
+          const span = e.mini ? 1 : 2, step = e.mini ? .2 : .18, spd = e.mini ? 5.6 : 4.5;
+          for (let i = -span; i <= span; i++) {
+            const a = ang + i * step;
+            bullets.push({ x: cx, y: cy, vx: Math.cos(a) * spd * diff.bulletSpdMod, vy: Math.sin(a) * spd * diff.bulletSpdMod, friendly: false, life: e.mini ? 170 : 260 });
+          }
+          beep(e.mini ? 240 : 160, e.mini ? .12 : .25, 'square', .04, -60);
         }
-        e.cool = (angry ? 50 : 80) * diff.enemyCoolMod;
+        e.cool = (e.mini ? (angry ? 32 : 52) : (angry ? 50 : 80)) * diff.enemyCoolMod;
       }
     }
-    if (!dead && overlap(p, e)) hurt(e.x + e.w / 2);
+    if (!dead && winTimer === 0 && overlap(p, e)) hurt(e.x + e.w / 2);
   }
 
   for (const b of bullets) {
@@ -461,23 +892,37 @@ function update() {
         if (e.dead) continue;
         if (b.x > e.x && b.x < e.x + e.w && b.y > e.y && b.y < e.y + e.h) { b.dead = true; spark(b.x, b.y, C.paper); damageEnemy(e); break; }
       }
-    } else if (!dead && p.inv <= 0) {
+    } else if (!dead && p.inv <= 0 && p.dodge <= 0 && winTimer === 0) {
       const r = b.big ? 7 : 4;
       if (b.x + r > p.x && b.x - r < p.x + p.w && b.y + r > p.y && b.y - r < p.y + p.h) { b.dead = true; hurt(b.x - b.vx * 3); }
     }
   }
   bullets = bullets.filter(b => !b.dead);
+  if (!dead && p.dodge > 0) p.dodge--;
 
   for (const k of pickups) {
     k.t += .08;
-    if (!k.taken && !dead && overlap(p, k)) {
+    if (!k.taken && !dead && winTimer === 0 && overlap(p, k)) {
       k.taken = true; score += 50;
       if (k.type === 'hp') { p.hp = Math.min(p.maxHp, p.hp + 1); popup(k.x + 11, k.y, '+1 życie'); }
+      else if (k.type === 'rapid') { p.rapid = 600; popup(k.x + 11, k.y, 'Szybki ogień'); }
       else { p.triple = 600; popup(k.x + 11, k.y, 'Potrójny strzał'); }
       beep(660, .08, 'square', .03, 0); setTimeout(() => beep(990, .12, 'square', .03, 0), 80);
     }
   }
   pickups = pickups.filter(k => !k.taken);
+
+  if (anim % 50 === 0) {
+    for (const s of solids) {
+      if (!s.secret) continue;
+      const dxs = s.x - p.x;
+      if (dxs > -40 && dxs < 420) particles.push({ x: s.x + s.w * .5, y: s.y - 2, vx: 0, vy: -.35, life: 28, max: 28, c: C.paper, s: 2 });
+    }
+  }
+
+  if (exit && anim % 10 === 0) {
+    particles.push({ x: exit.x + 8 + Math.random() * (exit.w - 16), y: exit.y + exit.h - 8, vx: (Math.random() - .5) * .4, vy: -0.7 - Math.random(), life: 36, max: 36, c: Math.random() < .5 ? C.hero : C.paper, s: 2 });
+  }
 
   for (const q of particles) { q.x += q.vx; q.y += q.vy; q.vy += .12; q.vx *= .98; q.life--; }
   particles = particles.filter(q => q.life > 0);
@@ -485,80 +930,152 @@ function update() {
   popups = popups.filter(u => u.t > 0);
 
   const target = p.x + p.w / 2 - W * .4 + p.facing * 40;
-  cam.x += (target - cam.x) * .1; cam.x = clamp(cam.x, 0, WORLD - W);
+  cam.x += (target - cam.x) * .1;
+  cam.x = clamp(cam.x, 0, Math.max(0, worldW - W));
   if (shake > 0) shake *= .88; if (shake < .3) shake = 0;
 
-  if (winTimer > 0 && --winTimer === 0) showEnd(true);
+  if (winTimer > 0 && --winTimer === 0) finishLevel();
   if (loseTimer > 0 && --loseTimer === 0) showEnd(false);
 }
 
-/* ---------- drawing ---------- */
 function drawBg() {
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, C.sky1); g.addColorStop(.55, C.sky2); g.addColorStop(.88, C.sky3);
+  g.addColorStop(0, theme.sky[0]); g.addColorStop(.55, theme.sky[1]); g.addColorStop(.88, theme.sky[2]);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const sx = 660 - cam.x * .03;
-  ctx.fillStyle = 'rgba(255,201,120,.22)'; circle(sx, 360, 120);
-  ctx.fillStyle = C.sun; circle(sx, 360, 72);
+  if (theme.stars) {
+    ctx.fillStyle = '#FFF6E4';
+    for (const s of stars) {
+      const x = s.x - cam.x * .04;
+      if (x < -2 || x > W + 2) continue;
+      ctx.globalAlpha = s.a; ctx.fillRect(x, s.y, s.s, s.s);
+    }
+    ctx.globalAlpha = 1;
+  }
+  const sx = theme.orbX - cam.x * .03;
+  ctx.fillStyle = theme.glow; circle(sx, theme.orbY, theme.orbR + 46);
+  ctx.fillStyle = theme.orb; circle(sx, theme.orbY, theme.orbR);
 
-  const o1 = cam.x * .2; ctx.fillStyle = C.far;
+  const o1 = cam.x * .2; ctx.fillStyle = theme.far;
   for (const b of far) { const x = b.x - o1; if (x + b.w < 0 || x > W) continue; ctx.fillRect(x, 430 - b.h, b.w, H); }
-
   const o2 = cam.x * .5;
   for (const b of near) {
     const x = b.x - o2; if (x + b.w < -40 || x > W + 40) continue;
     const top = 470 - b.h;
-    ctx.fillStyle = C.near; ctx.fillRect(x, top, b.w, H);
+    ctx.fillStyle = theme.near; ctx.fillRect(x, top, b.w, H);
     if (b.tower) {
       const cx = x + b.w / 2;
       ctx.fillRect(cx - 12, top - 22, 3, 22); ctx.fillRect(cx + 9, top - 22, 3, 22);
       ctx.fillRect(cx - 15, top - 46, 30, 26);
       ctx.beginPath(); ctx.moveTo(cx - 17, top - 46); ctx.lineTo(cx, top - 58); ctx.lineTo(cx + 17, top - 46); ctx.fill();
     }
-    ctx.fillStyle = C.lit;
+    ctx.fillStyle = theme.lit;
     for (const [wx, wy] of b.wins) ctx.fillRect(x + wx, top + wy, 6, 8);
-    ctx.fillStyle = C.near;
   }
 }
 
+function drawOneWay(x, y, w, h) {
+  ctx.fillStyle = 'rgba(22,15,40,.35)'; ctx.fillRect(x + 4, y + h, w - 8, 6);
+  ctx.fillStyle = C.steel; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = C.lip; ctx.fillRect(x, y, w, 3);
+  ctx.fillStyle = C.ink; for (let i = x + 8; i < x + w - 4; i += 24) ctx.fillRect(i, y + 9, 3, 3);
+}
 function drawSolids() {
   for (const s of solids) {
     const x = s.x - cam.x; if (x + s.w < 0 || x > W) continue;
-    if (s.oneWay) {
-      ctx.fillStyle = 'rgba(22,15,40,.35)'; ctx.fillRect(x + 4, s.y + s.h, s.w - 8, 6);
-      ctx.fillStyle = C.steel; ctx.fillRect(x, s.y, s.w, s.h);
-      ctx.fillStyle = C.lip; ctx.fillRect(x, s.y, s.w, 3);
-      ctx.fillStyle = C.ink; for (let i = x + 8; i < x + s.w - 4; i += 24) ctx.fillRect(i, s.y + 9, 3, 3);
-    } else {
-      ctx.fillStyle = C.ground; ctx.fillRect(x, s.y, s.w, s.h);
-      ctx.fillStyle = C.seam; for (let i = x + 30; i < x + s.w; i += 60) ctx.fillRect(i, s.y + 6, 2, s.h);
+    if (s.secret) {
+      const near = player && Math.hypot((player.x + 13) - (s.x + s.w / 2), (player.y + 20) - s.y) < 170;
+      ctx.save();
+      ctx.globalAlpha = near ? .62 : .08 + Math.sin(anim * .05 + s.x) * .025;
+      ctx.fillStyle = near ? C.lip : C.paper;
+      ctx.fillRect(x, s.y, s.w, s.h);
+      ctx.restore();
+      continue;
+    }
+    if (s.oneWay) drawOneWay(x, s.y, s.w, s.h);
+    else {
+      ctx.fillStyle = theme.ground; ctx.fillRect(x, s.y, s.w, s.h);
+      ctx.fillStyle = theme.seam; for (let i = x + 30; i < x + s.w; i += 60) ctx.fillRect(i, s.y + 6, 2, s.h);
       ctx.fillStyle = C.lip; ctx.fillRect(x, s.y, s.w, 4);
     }
   }
-  const sx = 150 - cam.x;
-  if (sx > -200 && sx < W) {
-    ctx.fillStyle = C.ink; ctx.fillRect(sx + 72, 404, 6, 76);
-    ctx.fillStyle = C.paper; rr(sx, 356, 150, 50, 6);
-    ctx.fillStyle = C.ink; ctx.font = '12px Bungee, Impact, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Strażnik czeka', sx + 75, 373); ctx.fillText('na końcu dachów', sx + 75, 390);
+}
+function drawMovers() {
+  for (const m of movers) {
+    ctx.save(); ctx.globalAlpha = .4; ctx.fillStyle = C.lip;
+    if (m.axis === 'x') ctx.fillRect(m.min - cam.x, m.y + m.h + 3, m.max + m.w - m.min, 2);
+    else ctx.fillRect(m.x - cam.x + m.w / 2 - 1, m.min, 2, m.max + m.h - m.min);
+    ctx.restore();
+    const x = m.x - cam.x;
+    if (x + m.w < -20 || x > W + 20) continue;
+    drawOneWay(x, m.y, m.w, m.h);
+    ctx.fillStyle = C.hero;
+    const mid = x + m.w / 2, my = m.y + 8;
+    ctx.beginPath();
+    if (m.axis === 'x') {
+      const s = m.dir < 0 ? -1 : 1;
+      ctx.moveTo(mid - 7 * s, my - 4); ctx.lineTo(mid + 6 * s, my); ctx.lineTo(mid - 7 * s, my + 4);
+    } else {
+      const s = m.dir < 0 ? -1 : 1;
+      ctx.moveTo(mid - 5, my); ctx.lineTo(mid + 5, my); ctx.lineTo(mid, my + 7 * s);
+    }
+    ctx.fill();
   }
+}
+function drawFlags() {
+  checkpoints.forEach((cp, i) => {
+    const x = cp.x - cam.x;
+    if (x < -40 || x > W + 10) return;
+    ctx.fillStyle = C.ink; ctx.fillRect(x, 404, 4, 76);
+    ctx.fillStyle = i <= currentCheckpointIdx && state !== 'menu' ? C.hero : C.paper;
+    ctx.beginPath(); ctx.moveTo(x + 4, 404); ctx.lineTo(x + 26, 412); ctx.lineTo(x + 4, 422); ctx.fill();
+  });
+}
+function drawSign() {
+  if (!sign) return;
+  const x = sign.x - cam.x;
+  if (x < -180 || x > W + 20) return;
+  ctx.fillStyle = C.ink; ctx.fillRect(x + 76, 408, 6, 72);
+  ctx.fillStyle = C.paper; rr(x, 350, 160, 58, 6);
+  ctx.fillStyle = C.ink; ctx.font = '11px Bungee, Impact, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  sign.lines.forEach((line, i) => ctx.fillText(line, x + 80, 368 + i * 18));
+}
+function drawExit() {
+  if (!exit) return;
+  const x = exit.x - cam.x;
+  if (x > W + 20 || x + exit.w < -20) return;
+  const pulse = .35 + Math.sin(anim * .12) * .2;
+  ctx.fillStyle = 'rgba(22,15,40,.55)'; ctx.fillRect(x - 8, exit.y, exit.w + 16, exit.h);
+  ctx.fillStyle = `rgba(242,193,78,${pulse})`; ctx.fillRect(x, exit.y + 6, exit.w, exit.h - 6);
+  ctx.fillStyle = C.paper; ctx.fillRect(x + exit.w / 2 - 2, exit.y, 4, exit.h);
+  ctx.fillStyle = C.ink; ctx.fillRect(x - 4, exit.y + exit.h - 8, exit.w + 8, 8);
 }
 
 function drawPlayer() {
   const p = player; if (dead) return;
+  if (p.dodge > 0) {
+    ctx.save(); ctx.globalAlpha = .35;
+    ctx.translate(Math.round(p.x - cam.x + p.w / 2 - p.dodgeDir * 16), Math.round(p.y));
+    ctx.scale(p.facing, 1);
+    ctx.fillStyle = C.paper; rr(-12, 11, 24, 21, 5);
+    ctx.restore();
+  }
   if (p.inv > 0 && Math.floor(p.inv / 4) % 2 === 0) return;
   ctx.save(); ctx.translate(Math.round(p.x - cam.x + p.w / 2), Math.round(p.y)); ctx.scale(p.facing, 1);
   ctx.fillStyle = C.ink;
   if (p.onGround) { const s = Math.abs(p.vx) > .5 ? Math.sin(p.run) * 5 : 0; ctx.fillRect(-9 + s, 30, 7, 10); ctx.fillRect(2 - s, 30, 7, 10); }
   else { ctx.fillRect(-9, 28, 7, 9); ctx.fillRect(3, 30, 7, 8); }
-  ctx.fillStyle = C.paper; ctx.fillRect(-16, 13 + Math.sin(frame * .3) * 1.5, 7, 3);
+  ctx.fillStyle = C.paper; ctx.fillRect(-16, 13 + Math.sin(anim * .3) * 1.5, 7, 3);
   ctx.fillStyle = C.hero; rr(-12, 11, 24, 21, 5); rr(-10, 0, 20, 14, 5);
   ctx.fillStyle = C.ink; ctx.fillRect(1, 4, 9, 5); ctx.fillRect(-12, 24, 24, 3);
   ctx.fillRect(6, 17, 17, 6); ctx.fillRect(6, 22, 5, 5);
   if (p.flash > 0) { ctx.fillStyle = C.paper; circle(26, 20, 6); }
   ctx.restore();
 }
-
+function hpBar(x, y, w, hp, max) {
+  if (hp >= max) return;
+  ctx.fillStyle = 'rgba(22,15,40,.55)'; ctx.fillRect(x, y, w, 3);
+  ctx.fillStyle = C.foe; ctx.fillRect(x, y, Math.max(0, w * hp / max), 3);
+}
 function drawWalker(e) {
   const x = e.x - cam.x, y = e.y, f = e.face || 1, s = Math.sin(e.step) * 4;
   ctx.fillStyle = C.ink; ctx.fillRect(x + 6 + s, y + 28, 6, 8); ctx.fillRect(x + 18 - s, y + 28, 6, 8);
@@ -567,18 +1084,40 @@ function drawWalker(e) {
   ctx.fillStyle = C.foeDark; ctx.fillRect(x + 4, y + 22, 22, 4);
   ctx.fillStyle = e.near && e.cool < 25 ? C.hero : C.paper; circle(x + 15 + f * 3, y + 11, 6);
   ctx.fillStyle = C.ink; circle(x + 15 + f * 5, y + 11, 2.5);
+  hpBar(x, y - 6, 30, e.hp, e.maxHp);
 }
 function drawDrone(e) {
-  const x = e.x - cam.x, y = e.y, r = Math.abs(Math.sin(frame * .6)) * 14 + 4;
+  const x = e.x - cam.x, y = e.y, r = Math.abs(Math.sin(anim * .6)) * 14 + 4;
   ctx.fillStyle = C.ink; ctx.fillRect(x + 17 - r, y - 5, r * 2, 3); ctx.fillRect(x + 16, y - 5, 2, 6);
   ctx.fillStyle = e.hit ? '#fff' : C.foe; rr(x, y, 34, 22, 11);
   ctx.fillStyle = C.foeDark; ctx.fillRect(x + 7, y + 16, 20, 3);
   const dx = player.x - e.x, dy = player.y - e.y, d = Math.hypot(dx, dy) || 1;
   ctx.fillStyle = e.cool < 25 ? C.hero : C.paper; circle(x + 17, y + 10, 5.5);
   ctx.fillStyle = C.ink; circle(x + 17 + dx / d * 2.5, y + 10 + dy / d * 2.5, 2.2);
+  hpBar(x, y - 8, 34, e.hp, e.maxHp);
+}
+function drawTurret(e) {
+  const x = e.x - cam.x, y = e.y;
+  ctx.fillStyle = C.ink; ctx.fillRect(x + 6, y + e.h, e.w - 12, 4);
+  ctx.fillStyle = e.hit ? '#fff' : C.steel; rr(x, y, e.w, e.h, 4);
+  ctx.fillStyle = C.foeDark;
+  ctx.fillRect(e.face > 0 ? x + e.w - 4 : x - 14, y + 10, 18, 6);
+  ctx.fillStyle = e.cool < 22 ? C.hero : C.paper; circle(x + e.w / 2, y + 12, 4);
+  ctx.fillStyle = C.ink; circle(x + e.w / 2 + e.face * 1.5, y + 12, 1.6);
+  hpBar(x, y - 6, e.w, e.hp, e.maxHp);
+}
+function drawMiniBoss(b, x, y) {
+  ctx.fillStyle = C.ink; rr(x - 4, y + b.h - 12, b.w + 8, 14, 4);
+  ctx.fillStyle = b.hit ? '#fff' : '#8E3A55'; rr(x, y, b.w, b.h - 6, 10);
+  ctx.fillStyle = C.foeDark; ctx.fillRect(x + 8, y + 46, b.w - 16, 5);
+  ctx.fillStyle = C.ink; rr(x - 16, y + 28, 22, 10, 3);
+  ctx.fillStyle = b.hp < b.max / 2 ? C.eb : C.hero; circle(x + 26, y + 22, 9);
+  ctx.fillStyle = C.ink; circle(x + 23, y + 22, 3.5);
+  ctx.fillStyle = (anim >> 3) % 2 ? C.paper : C.eb; circle(x + b.w - 10, y - 6, 3);
 }
 function drawBoss(b) {
   const x = b.x - cam.x, y = b.y; if (x > W + 40 || x + b.w < -40) return;
+  if (b.mini) { drawMiniBoss(b, x, y); return; }
   ctx.fillStyle = C.ink; rr(x - 6, y + 112, 122, 18, 6);
   ctx.fillStyle = '#3A2A50'; for (let i = 0; i < 6; i++) circle(x + 6 + i * 20, y + 121, 5);
   ctx.fillStyle = b.hit ? '#fff' : C.boss; rr(x, y, 110, 114, 14);
@@ -586,17 +1125,27 @@ function drawBoss(b) {
   ctx.fillStyle = C.ink; rr(x - 30, y + 42, 40, 16, 4);
   ctx.fillStyle = b.hp < b.max / 2 ? C.eb : C.hero; circle(x + 40, y + 34, 15);
   ctx.fillStyle = C.ink; circle(x + 35, y + 34, 6); ctx.fillRect(x + 80, y - 18, 4, 18);
-  ctx.fillStyle = (frame >> 4) % 2 ? C.eb : C.paper; circle(x + 82, y - 20, 4);
+  ctx.fillStyle = (anim >> 4) % 2 ? C.eb : C.paper; circle(x + 82, y - 20, 4);
 }
 function drawPickup(k) {
   const x = k.x - cam.x, y = k.y + Math.sin(k.t) * 4;
+  let alpha = 1;
+  if (k.secret && player) {
+    const near = Math.hypot((player.x + 13) - (k.x + 11), (player.y + 20) - (k.y + 11)) < 150;
+    alpha = near ? 1 : .14;
+  }
+  ctx.save(); ctx.globalAlpha = alpha;
   if (k.type === 'hp') {
     ctx.fillStyle = C.paper; rr(x, y, 22, 22, 5);
     ctx.fillStyle = C.foe; ctx.fillRect(x + 8, y + 4, 6, 14); ctx.fillRect(x + 4, y + 8, 14, 6);
+  } else if (k.type === 'rapid') {
+    ctx.fillStyle = C.lip; rr(x, y, 22, 22, 5);
+    ctx.fillStyle = C.ink; ctx.fillRect(x + 4, y + 5, 14, 3); ctx.fillRect(x + 7, y + 10, 11, 3); ctx.fillRect(x + 4, y + 15, 14, 3);
   } else {
     ctx.fillStyle = C.hero; rr(x, y, 22, 22, 5);
     ctx.fillStyle = C.ink; ctx.fillRect(x + 4, y + 5, 14, 3); ctx.fillRect(x + 4, y + 10, 14, 3); ctx.fillRect(x + 4, y + 15, 14, 3);
   }
+  ctx.restore();
 }
 function heart(x, y, full) {
   ctx.beginPath(); ctx.moveTo(x + 11, y + 20);
@@ -606,27 +1155,60 @@ function heart(x, y, full) {
   ctx.lineWidth = 2; ctx.strokeStyle = C.ink; ctx.stroke();
 }
 function shadowText(t, x, y, col = C.paper) { ctx.fillStyle = C.ink; ctx.fillText(t, x + 2, y + 2); ctx.fillStyle = col; ctx.fillText(t, x, y); }
+function drawStatusBar(x, y, w, frac, label, color) {
+  ctx.fillStyle = 'rgba(22,15,40,.5)'; ctx.fillRect(x, y, w, 8);
+  ctx.fillStyle = color; ctx.fillRect(x, y, w * frac, 8);
+  ctx.font = '600 12px Rubik, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  shadowText(label, x, y + 12);
+}
 
 function drawHud() {
   const p = player;
+  const lvl = LEVELS[levelIndex];
   for (let i = 0; i < p.maxHp; i++) heart(20 + i * 28, 18, i < p.hp);
   ctx.font = '24px Bungee, Impact, sans-serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'right';
   shadowText(String(score).padStart(6, '0'), W - 20, 14);
-  
   ctx.font = '600 12px Rubik, sans-serif'; ctx.textAlign = 'right';
-  shadowText(`${DIFFICULTY_CONFIG[currentDifficulty].label} • ${CHECKPOINTS[currentCheckpointIdx].name}`, W - 20, 42);
+  shadowText(`${DIFFICULTY_CONFIG[currentDifficulty].label} · Poziom ${levelIndex + 1}/${LEVELS.length}`, W - 20, 42);
+  shadowText(lvl.name, W - 20, 58);
 
-  if (p.triple > 0) {
-    ctx.fillStyle = 'rgba(22,15,40,.5)'; ctx.fillRect(20, 50, 140, 8);
-    ctx.fillStyle = C.hero; ctx.fillRect(20, 50, 140 * p.triple / 600, 8);
-    ctx.font = '600 12px Rubik, sans-serif'; ctx.textAlign = 'left'; shadowText('Potrójny strzał', 20, 62);
-  }
-  if (boss.active && !boss.dead) {
-    ctx.font = '16px Bungee, Impact, sans-serif'; ctx.textAlign = 'center'; shadowText('Strażnik', W / 2, 14, C.hero);
+  let extra = 50;
+  if (p.triple > 0) { drawStatusBar(20, extra, 140, p.triple / 600, 'Potrójny strzał', C.hero); extra += 32; }
+  if (p.rapid > 0) { drawStatusBar(20, extra, 140, p.rapid / 600, 'Szybki ogień', C.lip); extra += 32; }
+  if (p.dodgeCd > 0) { drawStatusBar(20, extra, 90, 1 - p.dodgeCd / 48, 'Unik', C.paper); extra += 32; }
+
+  if (boss && boss.active && !boss.dead) {
+    ctx.font = '16px Bungee, Impact, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    shadowText(boss.name || 'Strażnik', W / 2, 14, C.hero);
     ctx.fillStyle = C.ink; ctx.fillRect(W / 2 - 182, 38, 364, 14);
     ctx.fillStyle = boss.hp < boss.max / 2 ? C.eb : C.foe; ctx.fillRect(W / 2 - 180, 40, 360 * boss.hp / boss.max, 10);
   }
-  if (muted) { ctx.font = '600 12px Rubik, sans-serif'; ctx.textAlign = 'right'; shadowText('Dźwięk wyłączony', W - 20, 60); }
+  ctx.font = '600 12px Rubik, sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  let infoY = 76;
+  if (padOn) { shadowText('Pad podłączony', W - 20, infoY); infoY += 16; }
+  if (muted) shadowText('Dźwięk wyłączony', W - 20, infoY);
+
+  if (state === 'play' && winTimer === 0) {
+    const goal = exit ? exit.x + exit.w / 2 : (boss && !boss.dead ? boss.x + boss.w / 2 : null);
+    if (goal != null) {
+      const sx = goal - cam.x;
+      if (sx < 24 || sx > W - 24) {
+        const x = clamp(sx, 70, W - 70);
+        ctx.font = '600 13px Rubik, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const who = boss && boss.mini ? 'wartownik' : 'strażnik';
+        shadowText(sx > W ? (exit ? 'portal →' : who + ' →') : (exit ? '← portal' : '← ' + who), x, 108, C.hero);
+      }
+    }
+  }
+  if (banner > 0 && state === 'play') {
+    ctx.globalAlpha = Math.min(1, banner / 36);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '16px Bungee, Impact, sans-serif';
+    shadowText(`Poziom ${levelIndex + 1} / ${LEVELS.length}`, W / 2, 150, C.paper);
+    ctx.font = '34px Bungee, Impact, sans-serif';
+    shadowText(lvl.name, W / 2, 190, C.hero);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function draw() {
@@ -635,8 +1217,18 @@ function draw() {
   ctx.save();
   if (shake) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
   drawSolids();
+  drawMovers();
+  drawFlags();
+  drawSign();
+  drawExit();
   for (const k of pickups) drawPickup(k);
-  for (const e of enemies) { if (e.dead) continue; if (e.type === 'walker') drawWalker(e); else if (e.type === 'drone') drawDrone(e); else drawBoss(e); }
+  for (const e of enemies) {
+    if (e.dead) continue;
+    if (e.type === 'walker') drawWalker(e);
+    else if (e.type === 'drone') drawDrone(e);
+    else if (e.type === 'turret') drawTurret(e);
+    else drawBoss(e);
+  }
   drawPlayer();
   for (const b of bullets) {
     const x = b.x - cam.x;
@@ -658,107 +1250,212 @@ function draw() {
   }
 }
 
-/* ---------- UI & Menu Controls ---------- */
 const menu = document.getElementById('menu'), end = document.getElementById('end'), touch = document.getElementById('touch');
 const resumeBtn = document.getElementById('resumeBtn'), saveInfo = document.getElementById('saveInfo');
+const startBtn = document.getElementById('startBtn');
+const nextBtn = document.getElementById('nextBtn');
 const retryCheckpointBtn = document.getElementById('retryCheckpointBtn');
+const retryLevelBtn = document.getElementById('retryLevelBtn');
+const againBtn = document.getElementById('againBtn');
 
 function updateMenuUI() {
-  const saved = loadSave();
-  if (saved && saved.checkpoint > 0) {
-    resumeBtn.classList.remove('hidden');
-    resumeBtn.textContent = `Kontynuuj (${CHECKPOINTS[saved.checkpoint].name})`;
-    saveInfo.textContent = `Zapis: ${CHECKPOINTS[saved.checkpoint].name} [${DIFFICULTY_CONFIG[saved.difficulty || 'normal'].label}]`;
-  } else {
-    resumeBtn.classList.add('hidden');
-    saveInfo.textContent = '';
-  }
+  const saved = readSave();
+  const lvl = LEVELS[selectedLevel];
+  document.getElementById('levelBlurb').textContent = lvl.blurb;
+  document.querySelectorAll('.lvl-btn').forEach(btn => {
+    const i = Number(btn.dataset.level);
+    const locked = i > unlocked;
+    btn.disabled = locked;
+    btn.classList.toggle('active', i === selectedLevel);
+    btn.textContent = locked ? (i + 1) + ' 🔒' : String(i + 1);
+  });
   document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.diff === currentDifficulty);
   });
+  startBtn.textContent = 'Graj: ' + lvl.name;
+  if (saved && saved.inProgress) {
+    resumeBtn.classList.remove('hidden');
+    const savedLevel = LEVELS[saved.level] || LEVELS[0];
+    if (saved.pendingNext && saved.level < LEVELS.length - 1) {
+      resumeBtn.textContent = 'Dalej: ' + LEVELS[saved.level + 1].name;
+    } else {
+      const cp = savedLevel.checkpoints[saved.checkpoint] || savedLevel.checkpoints[0];
+      resumeBtn.textContent = 'Kontynuuj: ' + savedLevel.name + ' · ' + cp.name;
+    }
+  } else resumeBtn.classList.add('hidden');
+  const bits = [];
+  const rec = bestByLevel[selectedLevel] || 0;
+  if (rec > 0) bits.push('Rekord poziomu: ' + rec);
+  if (best > 0) bits.push('Najlepsza trasa: ' + best);
+  if (saved && saved.inProgress) bits.push('Zapis: ' + DIFFICULTY_CONFIG[saved.difficulty || 'normal'].label);
+  saveInfo.textContent = bits.join(' · ');
 }
 
-function setDifficulty(diff) {
-  currentDifficulty = diff;
-  updateMenuUI();
-}
-
-document.querySelectorAll('.diff-btn').forEach(b => {
-  b.addEventListener('click', () => setDifficulty(b.dataset.diff));
-});
-
-function startGame(fromCheckpoint = false) {
-  initAudio();
-  const saved = loadSave();
-  if (fromCheckpoint && saved) {
-    currentDifficulty = saved.difficulty || currentDifficulty;
-    score = saved.score || 0;
-    reset(saved.checkpoint || 0, true);
-  } else {
-    reset(0, false);
-  }
+function showOverlay(opts) {
+  state = 'end';
   clearKeys();
-  menu.classList.add('hidden'); end.classList.add('hidden');
-  if (isTouch) touch.classList.remove('hidden');
-  document.activeElement && document.activeElement.blur();
-  state = 'play';
+  touch.classList.add('hidden');
+  document.getElementById('endTitle').textContent = opts.title;
+  document.getElementById('endText').textContent = opts.text;
+  nextBtn.classList.toggle('hidden', !opts.next);
+  retryCheckpointBtn.classList.toggle('hidden', !opts.checkpoint);
+  retryLevelBtn.classList.toggle('hidden', !opts.retry);
+  againBtn.classList.toggle('hidden', !opts.again);
+  if (opts.againLabel) againBtn.textContent = opts.againLabel;
+  if (opts.checkpoint && checkpoints[currentCheckpointIdx]) {
+    retryCheckpointBtn.textContent = 'Wróć do: ' + checkpoints[currentCheckpointIdx].name;
+  }
+  end.classList.remove('hidden');
+  menu.classList.add('hidden');
+}
+
+function finishLevel() {
+  if (finishing) return;
+  finishing = true;
+  if (levelIndex >= LEVELS.length - 1) { showEnd(true); return; }
+  score += 500;
+  commitLevelRecord();
+  unlocked = Math.max(unlocked, levelIndex + 1);
+  pendingNext = true;
+  inProgress = true;
+  saveGame();
+  showOverlay({
+    title: 'Poziom ukończony',
+    text: `${LEVELS[levelIndex].name} za tobą. Ten poziom: ${levelPoints()} pkt, rekord ${bestByLevel[levelIndex]}. Suma: ${score}. Następny: ${LEVELS[levelIndex + 1].name}.`,
+    next: true
+  });
 }
 
 function showEnd(win) {
-  state = 'end'; clearKeys(); touch.classList.add('hidden');
-  const sec = Math.floor(frame / 60), time = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
-  let text;
+  const sec = Math.floor(runFrames / 60), time = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   if (win) {
-    const bonus = Math.max(0, Math.round(3000 - sec * 15)) + player.hp * 200;
-    score += bonus; best = Math.max(best, score);
-    text = `Strażnik pokonany w czasie ${time} (${DIFFICULTY_CONFIG[currentDifficulty].label})! Wynik: ${score} (w tym ${bonus} pkt bonusu). Najlepszy wynik: ${best}.`;
-    // Wyczyść checkpoint po wygraniu całej gry
-    currentCheckpointIdx = 0;
+    const bonus = Math.max(0, Math.round(2800 - sec * 5)) + player.hp * 250;
+    score += bonus;
+    commitLevelRecord();
+    pendingNext = false;
+    inProgress = false;
+    unlocked = LEVELS.length - 1;
     saveGame();
-    retryCheckpointBtn.classList.add('hidden');
+    showOverlay({
+      title: 'Wygrana!',
+      text: `Strażnik pokonany. Cała trasa: ${time} (${DIFFICULTY_CONFIG[currentDifficulty].label}). Wynik: ${score}, w tym ${bonus} pkt bonusu. Rekord areny: ${bestByLevel[levelIndex]}. Najlepsza trasa: ${best}.`,
+      again: true,
+      againLabel: 'Zagraj od nowa'
+    });
   } else {
     best = Math.max(best, score);
-    text = `Koniec gry! Wynik: ${score}. Poziom: ${DIFFICULTY_CONFIG[currentDifficulty].label}. Strażnik dalej czeka na końcu dachów.`;
-    if (currentCheckpointIdx > 0) {
-      retryCheckpointBtn.textContent = `Wróć do: ${CHECKPOINTS[currentCheckpointIdx].name}`;
-      retryCheckpointBtn.classList.remove('hidden');
-    } else {
-      retryCheckpointBtn.classList.add('hidden');
-    }
+    pendingNext = false;
+    inProgress = true;
+    saveGame();
+    showOverlay({
+      title: 'Koniec gry',
+      text: `Poziom ${levelIndex + 1}: ${LEVELS[levelIndex].name}. Wynik: ${score}. Rekord tego poziomu: ${bestByLevel[levelIndex] || 0}. Trudność: ${DIFFICULTY_CONFIG[currentDifficulty].label}.`,
+      checkpoint: currentCheckpointIdx > 0,
+      retry: true,
+      again: levelIndex > 0,
+      againLabel: 'Od początku'
+    });
   }
-  document.getElementById('endTitle').textContent = win ? 'Wygrana!' : 'Koniec gry';
-  document.getElementById('endText').textContent = text;
-  end.classList.remove('hidden');
 }
 
+function playLevel(index, checkpoint, opts) {
+  initAudio();
+  applyLevel(index, checkpoint, opts);
+  clearKeys();
+  menu.classList.add('hidden');
+  end.classList.add('hidden');
+  if (isTouch) touch.classList.remove('hidden');
+  if (document.activeElement) document.activeElement.blur();
+  state = 'play';
+  last = performance.now();
+  acc = 0;
+}
+function startSelected() {
+  playLevel(selectedLevel, 0, { score: 0, rebase: true });
+}
+function continueGame() {
+  const saved = readSave();
+  if (!saved || !saved.inProgress) return;
+  currentDifficulty = saved.difficulty || currentDifficulty;
+  if (saved.pendingNext && saved.level < LEVELS.length - 1) {
+    unlocked = Math.max(unlocked, saved.level + 1);
+    playLevel(saved.level + 1, 0, { score: saved.score || 0, rebase: true, runFrames: saved.runFrames || 0, keepTime: true });
+  } else {
+    playLevel(saved.level || 0, saved.checkpoint || 0, {
+      score: saved.score || 0,
+      scoreBase: saved.scoreAtLevelStart || 0,
+      runFrames: saved.runFrames || 0,
+      keepScore: true,
+      keepTime: true
+    });
+  }
+}
+function goMenu() {
+  state = 'menu';
+  clearKeys();
+  touch.classList.add('hidden');
+  end.classList.add('hidden');
+  menu.classList.remove('hidden');
+  const saved = readSave();
+  if (saved && saved.unlocked != null) unlocked = clamp(saved.unlocked, 0, LEVELS.length - 1);
+  if (saved && saved.inProgress) {
+    selectedLevel = clamp(saved.pendingNext ? saved.level + 1 : saved.level, 0, unlocked);
+  }
+  applyLevel(selectedLevel, 0, { preview: true });
+  updateMenuUI();
+}
 function togglePause() {
-  if (state === 'play') { state = 'pause'; clearKeys(); }
+  if (state === 'play') { state = 'pause'; clearKeys(); saveGame(); }
   else if (state === 'pause') { state = 'play'; last = performance.now(); acc = 0; }
 }
 
-document.getElementById('startBtn').addEventListener('click', () => startGame(false));
-resumeBtn.addEventListener('click', () => startGame(true));
-retryCheckpointBtn.addEventListener('click', () => startGame(true));
-document.getElementById('againBtn').addEventListener('click', () => startGame(false));
+document.querySelectorAll('.diff-btn').forEach(b => b.addEventListener('click', () => {
+  currentDifficulty = b.dataset.diff;
+  updateMenuUI();
+}));
+document.querySelectorAll('.lvl-btn').forEach(b => b.addEventListener('click', () => {
+  const i = Number(b.dataset.level);
+  if (i > unlocked) return;
+  selectedLevel = i;
+  applyLevel(i, 0, { preview: true });
+  updateMenuUI();
+}));
+startBtn.addEventListener('click', startSelected);
+resumeBtn.addEventListener('click', continueGame);
+nextBtn.addEventListener('click', () => {
+  unlocked = Math.max(unlocked, Math.min(LEVELS.length - 1, levelIndex + 1));
+  playLevel(levelIndex + 1, 0, { keepScore: true, rebase: true, keepTime: true });
+});
+retryCheckpointBtn.addEventListener('click', () => playLevel(levelIndex, currentCheckpointIdx, { keepScore: true, keepTime: true }));
+retryLevelBtn.addEventListener('click', () => playLevel(levelIndex, 0, { score: scoreAtLevelStart, rebase: true, keepTime: true }));
+againBtn.addEventListener('click', () => { selectedLevel = 0; playLevel(0, 0, { score: 0, rebase: true }); });
+document.getElementById('menuBtn').addEventListener('click', goMenu);
 document.getElementById('pauseBtn').addEventListener('pointerdown', e => { e.preventDefault(); togglePause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') togglePause(); });
 
-// Sprawdź zapis przy starcie
-const initialSave = loadSave();
-if (initialSave) {
-  if (initialSave.difficulty) currentDifficulty = initialSave.difficulty;
-  if (initialSave.best) best = initialSave.best;
+const boot = readSave();
+if (boot) {
+  if (boot.difficulty && DIFFICULTY_CONFIG[boot.difficulty]) currentDifficulty = boot.difficulty;
+  if (boot.best) best = boot.best;
+  if (boot.bestByLevel) bestByLevel = boot.bestByLevel.slice();
+  if (boot.unlocked) unlocked = clamp(boot.unlocked, 0, LEVELS.length - 1);
+  selectedLevel = clamp(boot.pendingNext ? (boot.level || 0) + 1 : (boot.level || 0), 0, unlocked);
 }
+applyLevel(selectedLevel, 0, { preview: true });
 updateMenuUI();
 
 let last = performance.now(), acc = 0;
 function loop(t) {
   requestAnimationFrame(loop);
+  pollGamepad();
   const dt = Math.min(100, t - last); last = t;
   if (state === 'play' || state === 'end') {
     acc += dt;
     while (acc >= STEP) { if (state === 'play') update(); acc -= STEP; }
-  } else if (state === 'menu') { cam.x = (cam.x + .4) % (WORLD - W); frame++; }
+  } else if (state === 'menu') {
+    if (worldW > W + 8) cam.x = (cam.x + .35) % (worldW - W);
+    anim++;
+  }
   draw();
 }
 if (document.fonts && document.fonts.load) document.fonts.load('24px Bungee').catch(() => {});
